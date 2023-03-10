@@ -24,8 +24,6 @@ plugins:
     - name: refresh_token
       kind: password
     - name: community_id
-    - name: start_date
-      value: '2010-01-01T00:00:00Z'
     config:
       start_date: '2010-01-01T00:00:00Z'
     select:
