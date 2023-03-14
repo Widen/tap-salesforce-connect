@@ -137,3 +137,42 @@ class TopicFeedStream(SalesforceConnectStream):
         url_property,
         th.Property("visibility", th.StringType),
     ).to_dict()
+
+    def get_child_context(self, record: dict, context: Optional[dict]) -> dict:
+        """Return a context dictionary for child streams."""
+        return {
+            "feed_element_id": record["id"],
+        }
+
+
+class CommentsStream(SalesforceConnectStream):
+    """Define child Comments stream."""
+
+    parent_stream_type = TopicFeedStream
+    name = "comments"
+    path = "/chatter/feed-elements/{feed_element_id}/capabilities/comments/items"
+    records_jsonpath = "$.items[*]"
+    primary_keys = ["id"]
+    replication_key = None
+    schema = th.PropertiesList(
+        th.Property("attachment", th.StringType),
+        th.Property("body", th.StringType),
+        th.Property("capabilities", th.StringType),
+        th.Property("clientInfo", th.StringType),
+        created_date_property,
+        th.Property("feedElement", th.StringType),
+        th.Property("feedItem", th.StringType),
+        id_property,
+        th.Property("isDeletable", th.BooleanType),
+        th.Property("isDeleteRestricted", th.BooleanType),
+        th.Property("likes", th.StringType),
+        th.Property("likesMessage", th.StringType),
+        th.Property("myLike", th.StringType),
+        th.Property("parent", th.StringType),
+        th.Property("relativeCreatedDate", th.StringType),
+        th.Property("threadLevel", th.IntegerType),
+        th.Property("threadParentId", th.StringType),
+        type_property,
+        url_property,
+        th.Property("user", th.StringType),
+    ).to_dict()
