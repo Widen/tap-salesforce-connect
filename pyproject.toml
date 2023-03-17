@@ -12,6 +12,8 @@ license = "Apache 2.0"
 packages = [
     { include = "tap_salesforce_connect" },
 ]
+homepage = "https://github.com/Widen/tap-salesforce-connect"
+repository = "https://github.com/Widen/tap-salesforce-connect"
 
 [tool.poetry.dependencies]
 python = "<3.12,>=3.7.1"
