@@ -60,7 +60,7 @@ class TapSalesforceConnect(Tap):
             streams.TopicFeedStream(self),
             streams.UsersStream(self),
             streams.TopicsStream(self),
-            streams.CommentsStream(self)
+            streams.CommentsStream(self),
         ]
 
 
