@@ -5,8 +5,9 @@ from __future__ import annotations
 import json
 import sys
 from pathlib import Path
-from typing import Any, Callable, Iterable
+from typing import Any, Callable, Generator, Iterable
 
+import backoff
 import requests
 from singer_sdk.helpers.jsonpath import extract_jsonpath
 from singer_sdk.streams import RESTStream
@@ -108,3 +109,25 @@ class SalesforceConnectStream(RESTStream):
             else:
                 stringified_row[k] = v
         return stringified_row
+
+    # there is a one-hour rate limit on the SalesforceConnect API
+    def backoff_wait_generator(self) -> Generator[float, None, None]:
+        """Use wait generator for the backoff decorator on request failure.
+
+        See for options:
+        https://github.com/litl/backoff/blob/master/backoff/_wait_gen.py
+
+        And see for examples: `Code Samples <../code_samples.html#custom-backoff>`_
+
+        Returns:
+            The wait generator
+        """
+        return backoff.expo(factor=3)  # type: ignore # ignore 'Returning Any'
+
+    def backoff_max_tries(self) -> int:
+        """Provide the number of attempts before giving up when retrying requests.
+
+        Returns:
+            Number of max retries.
+        """
+        return 20
