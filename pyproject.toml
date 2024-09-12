@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "tap-salesforce-connect"
-version = "0.1.2"
+version = "0.1.3"
 description = "`tap-salesforce-connect` is a Singer tap for SalesforceConnect, built with the Meltano Singer SDK."
 readme = "README.md"
 authors = ["Josh Lloyd"]

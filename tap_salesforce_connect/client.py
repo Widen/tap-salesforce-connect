@@ -114,9 +114,13 @@ class SalesforceConnectStream(RESTStream):
 
         Salesforce Connect API has a rate limit scoped to an hour
         """
-        if exception.response.status_code == 503:
-            return 60 * 60
-        return exception.response.headers.get("Retry-After", 0)
+        if exception.response:
+            if exception.response.status_code == 503:
+                return 60 * 60
+            else:
+                return exception.response.headers.get("Retry-After", 0)
+        else:
+            return 0
 
     def backoff_wait_generator(self) -> Generator[float, None, None]:
         """Return a generator of wait times between retries."""
