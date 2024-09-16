@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import json
 import sys
+import typing as t
 from pathlib import Path
 from typing import Any, Callable, Generator, Iterable
 
 import requests
+from singer_sdk import metrics
 from singer_sdk.helpers.jsonpath import extract_jsonpath
 from singer_sdk.streams import RESTStream
 
@@ -125,3 +127,37 @@ class SalesforceConnectStream(RESTStream):
     def backoff_wait_generator(self) -> Generator[float, None, None]:
         """Return a generator of wait times between retries."""
         return self.backoff_runtime(value=self.get_wait_time_based_on_response)
+
+    def request_records(self, context: dict | None) -> t.Iterable[dict]:
+        """Request records from REST endpoint(s), returning response records.
+
+        If pagination is detected, pages will be recursed automatically.
+
+        Args:
+            context: Stream partition or context dictionary.
+
+        Yields:
+            An item for every record in the response.
+        """
+        paginator = self.get_new_paginator()
+        decorated_request = self.request_decorator(self._request)
+
+        with metrics.http_request_counter(self.name, self.path) as request_counter:
+            request_counter.context = context
+
+            while not paginator.finished:
+                prepared_request = self.prepare_request(
+                    context,
+                    next_page_token=paginator.current_value,
+                )
+                resp = decorated_request(prepared_request, context)
+                request_counter.increment()
+                self.update_sync_costs(prepared_request, resp, context)
+
+                if resp.status_code in [503]:
+                    msg = self.response_error_message(resp)
+                    self.logger.info(f"Skipping records due to {msg}.")
+                    paginator._finished = True
+                else:
+                    yield from self.parse_response(resp)
+                    paginator.advance(resp)
