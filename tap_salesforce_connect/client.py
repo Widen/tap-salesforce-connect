@@ -3,13 +3,16 @@
 from __future__ import annotations
 
 import json
+import logging
 import sys
 import typing as t
+from http import HTTPStatus
 from pathlib import Path
 from typing import Any, Callable, Generator, Iterable
 
 import requests
 from singer_sdk import metrics
+from singer_sdk.exceptions import FatalAPIError, RetriableAPIError
 from singer_sdk.helpers.jsonpath import extract_jsonpath
 from singer_sdk.streams import RESTStream
 
@@ -161,3 +164,36 @@ class SalesforceConnectStream(RESTStream):
                 else:
                     yield from self.parse_response(resp)
                     paginator.advance(resp)
+
+    def validate_response(self, response: requests.Response) -> None:
+        """Validate HTTP response.
+
+        Args:
+            response: A `requests.Response`_ object.
+
+        Raises:
+            FatalAPIError: If the request is not retriable.
+            RetriableAPIError: If the request is retriable.
+        """
+        if response.status_code in [503]:
+            msg = self.response_error_message(response)
+            logging.info(
+                f"Skipping request due to {response.status_code} error: {msg} "
+                f"| body: {response.text}"
+            )
+            return
+
+        if (
+            response.status_code in self.extra_retry_statuses
+            or response.status_code >= HTTPStatus.INTERNAL_SERVER_ERROR
+        ):
+            msg = self.response_error_message(response)
+            raise RetriableAPIError(msg, response)
+
+        if (
+            HTTPStatus.BAD_REQUEST
+            <= response.status_code
+            < HTTPStatus.INTERNAL_SERVER_ERROR
+        ):
+            msg = self.response_error_message(response)
+            raise FatalAPIError(msg)
